@@ -457,13 +457,21 @@ public class PackageBundlesPage : AbstractPackagesPage
         {
             var manager = ResolveManagerForImport(pkg.ManagerName);
             var (sourceName, sourceStatus) = BundleImportFilter.ClassifySource(manager, pkg.Source);
+            var subject = new BundleReportSubject(
+                pkg.Id, pkg.Name, manager?.DisplayName ?? pkg.ManagerName, sourceName);
             pkg.InstallationOptions = BundleImportFilter.Apply(
                 ref report,
-                new BundleReportSubject(
-                    pkg.Id, pkg.Name, manager?.DisplayName ?? pkg.ManagerName, sourceName),
+                subject,
                 pkg.InstallationOptions, allowCLI, allowPrePost,
                 manager?.CommandLineIsShellInterpreted ?? false, sourceName, sourceStatus);
-            packages.Add(DeserializePackage(pkg));
+
+            IPackage imported = DeserializePackage(pkg);
+            if (imported is ImportedPackage && PackageRestrictionGate.WhyInstallRefused(imported) is not null)
+            {
+                BundleImportFilter.ReportRestricted(ref report, subject);
+                imported = DeserializeIncompatiblePackage(pkg.GetInvalidEquivalent(), NullSource.Instance);
+            }
+            packages.Add(imported);
         }
 
         foreach (var pkg in deserializedData.incompatible_packages)

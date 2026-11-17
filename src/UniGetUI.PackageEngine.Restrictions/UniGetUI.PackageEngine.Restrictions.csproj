@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFrameworks>$(SharedTargetFrameworks)</TargetFrameworks>
+        <RootNamespace>UniGetUI.PackageEngine.Restrictions</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\UniGetUI.Core.Data\UniGetUI.Core.Data.csproj" />
+        <ProjectReference Include="..\UniGetUI.Core.Logger\UniGetUI.Core.Logging.csproj" />
+        <!-- Only for PolicyElevationAccessPolicy, the rules that decide whether a file can be
+             changed by anyone other than an administrator. -->
+        <ProjectReference Include="..\UniGetUI.PackageEngine.AgentBroker\UniGetUI.PackageEngine.AgentBroker.csproj" />
+        <ProjectReference Include="..\UniGetUI.PackageEngine.Enums\UniGetUI.PackageEngine.Structs.csproj" />
+        <ProjectReference Include="..\UniGetUI.PackageEngine.Interfaces\UniGetUI.PackageEngine.Interfaces.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="..\SharedAssemblyInfo.cs" Link="SharedAssemblyInfo.cs" />
+    </ItemGroup>
+</Project>

@@ -5,6 +5,7 @@ using UniGetUI.Avalonia.Views.Pages.SettingsPages;
 using UniGetUI.Core.SettingsEngine;
 using UniGetUI.Core.SettingsEngine.SecureSettings;
 using UniGetUI.Core.Tools;
+using UniGetUI.PackageEngine.Restrictions;
 
 namespace UniGetUI.Avalonia.ViewModels.Pages.SettingsPages;
 
@@ -25,6 +26,28 @@ public partial class AdministratorViewModel : ViewModelBase
         CoreTools.Translate("The settings will list, in their descriptions, the potential security issues they may have.");
 
     public bool IsWindows { get; } = OperatingSystem.IsWindows();
+
+    /// <summary>What the organization's package restrictions currently do on this device.</summary>
+    public string PackageRestrictionsStatus { get; } = DescribePackageRestrictions(PackageRestrictions.Current);
+
+    internal static string DescribePackageRestrictions(RestrictionSet restrictions) => restrictions.State switch
+    {
+        RestrictionState.Enforced => CoreTools.Translate(
+            "Only the packages allowed by your organization can be found and installed. Installed packages can still be updated. Rules: {0}. Origin: {1}.",
+            restrictions.Rules.Count,
+            restrictions.Origin is RestrictionOrigin.Registry
+                ? CoreTools.Translate("group policy")
+                : PackageRestrictions.FilePath),
+        RestrictionState.Disabled => CoreTools.Translate("Package restrictions are turned off by your organization."),
+        RestrictionState.Invalid => CoreTools.Translate(
+            "The package restrictions set by your organization could not be read, so no new package can be installed: {0}",
+            restrictions.Detail ?? ""),
+        RestrictionState.IgnoredUntrusted => CoreTools.Translate(
+            "The package restrictions file {0} was ignored because users who are not administrators can modify it: {1}",
+            PackageRestrictions.FilePath,
+            restrictions.Detail ?? ""),
+        _ => CoreTools.Translate("No package restrictions are configured on this device."),
+    };
 
     // ── Observable state ─────────────────────────────────────────────────
     /// <summary>True when elevation is NOT prohibited — controls enabled-state of the cache-admin-rights cards.</summary>

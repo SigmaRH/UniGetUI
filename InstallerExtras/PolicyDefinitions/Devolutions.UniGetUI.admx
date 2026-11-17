@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   revision="1.0"
+                   schemaVersion="1.0"
+                   xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <policyNamespaces>
+    <target prefix="unigetui" namespace="Devolutions.Policies.UniGetUI" />
+    <using prefix="windows" namespace="Microsoft.Policies.Windows" />
+  </policyNamespaces>
+  <resources minRequiredRevision="1.0" />
+  <categories>
+    <category name="UniGetUI" displayName="$(string.UniGetUI)" />
+  </categories>
+  <policies>
+    <!--
+      Enabled   -> Enabled = 1 and one REG_SZ value per rule under AllowedPackages.
+      Disabled  -> Enabled = 0, which also overrides a PackageRestrictions.json on the machine.
+      Not configured -> no Enabled value: UniGetUI falls back to PackageRestrictions.json.
+    -->
+    <policy name="PackageRestrictions"
+            class="Machine"
+            displayName="$(string.PackageRestrictions)"
+            explainText="$(string.PackageRestrictions_Explain)"
+            key="SOFTWARE\Policies\Devolutions\UniGetUI\PackageRestrictions"
+            valueName="Enabled"
+            presentation="$(presentation.PackageRestrictions)">
+      <parentCategory ref="UniGetUI" />
+      <supportedOn ref="windows:SUPPORTED_Windows_10_0" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+      <elements>
+        <list id="AllowedPackages"
+              key="SOFTWARE\Policies\Devolutions\UniGetUI\PackageRestrictions\AllowedPackages"
+              valuePrefix="" />
+      </elements>
+    </policy>
+  </policies>
+</policyDefinitions>

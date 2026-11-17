@@ -27,6 +27,7 @@ using UniGetUI.Core.SettingsEngine;
 using UniGetUI.Core.Tools;
 using UniGetUI.PackageEngine.Interfaces;
 using UniGetUI.PackageEngine.PackageClasses;
+using UniGetUI.PackageEngine.Restrictions;
 
 namespace UniGetUI.Avalonia.Views.Pages;
 
@@ -995,7 +996,26 @@ public abstract partial class AbstractPackagesPage : UserControl,
 
     // ─── CSV export ───────────────────────────────────────────────────────────
     // Exports the checked packages, or the whole filtered list when nothing is checked.
-    protected async Task ExportPackagesToCsvAsync()
+    // UTF-8 BOM so Excel renders accented package names correctly
+    protected Task ExportPackagesToCsvAsync() => ExportPackagesAsync(
+        CoreTools.MakeValidFileName(ViewModel.PageTitle) + ".csv",
+        new FilePickerFileType(CoreTools.Translate("CSV file")) { Patterns = ["*.csv"] },
+        packages => BuildCsv(packages, ViewModel.RoleIsUpdateLike),
+        new UTF8Encoding(true));
+
+    // A package restrictions file listing these packages, for an administrator to merge into the
+    // list deployed to every machine.
+    protected Task ExportPackagesAsAllowListAsync() => ExportPackagesAsync(
+        PackageRestrictions.FileName,
+        new FilePickerFileType(CoreTools.Translate("Package restrictions file")) { Patterns = ["*.json"] },
+        packages => AllowListExport.ToJson(AllowListExport.Build(packages, out _)),
+        new UTF8Encoding(false));
+
+    private async Task ExportPackagesAsync(
+        string suggestedFileName,
+        FilePickerFileType fileType,
+        Func<IReadOnlyList<IPackage>, string> build,
+        Encoding encoding)
     {
         if (GetMainWindow() is not { } win) return;
 
@@ -1014,11 +1034,8 @@ public abstract partial class AbstractPackagesPage : UserControl,
 
         var file = await win.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            SuggestedFileName = CoreTools.MakeValidFileName(vm.PageTitle) + ".csv",
-            FileTypeChoices =
-            [
-                new FilePickerFileType(CoreTools.Translate("CSV file")) { Patterns = ["*.csv"] },
-            ],
+            SuggestedFileName = suggestedFileName,
+            FileTypeChoices = [fileType],
         });
 
         var path = file?.TryGetLocalPath();
@@ -1026,8 +1043,7 @@ public abstract partial class AbstractPackagesPage : UserControl,
 
         try
         {
-            // UTF-8 BOM so Excel renders accented package names correctly
-            await File.WriteAllTextAsync(path, BuildCsv(packages, vm.RoleIsUpdateLike), new UTF8Encoding(true));
+            await File.WriteAllTextAsync(path, build(packages), encoding);
 
             MainWindow.Instance?.ShowBanner(
                 CoreTools.Translate("Success!"),
@@ -1038,7 +1054,7 @@ public abstract partial class AbstractPackagesPage : UserControl,
         }
         catch (Exception ex)
         {
-            Logger.Error("An error occurred while exporting packages to CSV");
+            Logger.Error("An error occurred while exporting packages");
             Logger.Error(ex);
             MainWindow.Instance?.ShowBanner(
                 CoreTools.Translate("An error occurred"),

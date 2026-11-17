@@ -628,14 +628,15 @@ public static class IpcBundleApi
                 manager,
                 package.Source
             );
+            var subject = new BundleReportSubject(
+                package.Id,
+                package.Name,
+                manager?.DisplayName ?? package.ManagerName,
+                sourceName
+            );
             package.InstallationOptions = BundleImportFilter.Apply(
                 ref report,
-                new BundleReportSubject(
-                    package.Id,
-                    package.Name,
-                    manager?.DisplayName ?? package.ManagerName,
-                    sourceName
-                ),
+                subject,
                 package.InstallationOptions,
                 allowCliArguments,
                 allowPrePostCommands,
@@ -643,7 +644,20 @@ public static class IpcBundleApi
                 sourceName,
                 sourceStatus
             );
-            packages.Add(DeserializePackage(package));
+
+            IPackage imported = DeserializePackage(package);
+            if (
+                imported is ImportedPackage
+                && PackageRestrictionGate.WhyInstallRefused(imported, askManager: true) is not null
+            )
+            {
+                BundleImportFilter.ReportRestricted(ref report, subject);
+                imported = new InvalidImportedPackage(
+                    package.GetInvalidEquivalent(),
+                    NullSource.Instance
+                );
+            }
+            packages.Add(imported);
         }
 
         foreach (var incompatiblePackage in deserializedData.incompatible_packages)

@@ -70,9 +70,9 @@ namespace UniGetUI.PackageEngine.PackageLoader
             await base.ReloadPackages();
         }
 
-        protected override async Task<bool> IsPackageValid(IPackage package)
+        protected override Task<bool> IsPackageValid(IPackage package)
         {
-            return await Task.FromResult(true);
+            return Task.FromResult(PackageRestrictionGate.IsVisible(package));
         }
 
         public IReadOnlyList<IPackageManager> GetSearchableManagers()
@@ -123,6 +123,14 @@ namespace UniGetUI.PackageEngine.PackageLoader
                 lock (_failedManagers)
                     _failedManagers.Add(manager);
             }
+
+            // Before the caps below: an allowed package ranked beyond them would otherwise be
+            // dropped in favour of results the user is not allowed to see.
+            if (PackageRestrictionGate.IsActive)
+            {
+                found = found.Where(PackageRestrictionGate.IsVisible).ToArray();
+            }
+
             if (text.Length == 0)
             {
                 return found

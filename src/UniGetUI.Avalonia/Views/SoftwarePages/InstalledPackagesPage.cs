@@ -129,6 +129,8 @@ public class InstalledPackagesPage : AbstractPackagesPage
             () => _ = ExportSelectionToBundleAsync(vm)), () => HasCheckedPackages);
         ViewModel.AddToolbarButton("save_as", CoreTools.Translate("Export to CSV"),
             () => _ = ExportPackagesToCsvAsync());
+        ViewModel.AddToolbarButton("clipboard_list", CoreTools.Translate("Export as allow-list"),
+            () => _ = ExportPackagesAsAllowListAsync());
     }
 
     // ─── Context menu ─────────────────────────────────────────────────────────

@@ -19,6 +19,7 @@ using UniGetUI.PackageEngine.Interfaces;
 using UniGetUI.PackageEngine.Operations;
 using UniGetUI.PackageEngine.PackageClasses;
 using UniGetUI.PackageEngine.PackageLoader;
+using UniGetUI.PackageEngine.Restrictions;
 using UniGetUI.PackageOperations;
 
 namespace UniGetUI.Avalonia.ViewModels.Pages;
@@ -555,6 +556,7 @@ public partial class SoftwareCatalogViewModel : ViewModelBase
                 .Where(o => o.Status is OperationStatus.InQueue or OperationStatus.Running)
                 .Select(o => o.Package));
         bool sourcesMissing = false;
+        var restrictions = PackageRestrictions.Current;
         foreach (var tile in _allPackages)
         {
             var manager = FindManager(tile.Entry);
@@ -572,6 +574,12 @@ public partial class SoftwareCatalogViewModel : ViewModelBase
                         : _sources.TryGetValue(manager.Id, out var listed) && listed.Count == 0
                             ? CoreTools.Translate("The sources of {0} could not be listed. Check the log, then try again.", manager.DisplayName)
                             : CoreTools.Translate("The source {0} is not enabled for {1}. Add it in Package Managers.", tile.Entry.Source, manager.DisplayName);
+            // What is installed stays manageable whatever the administrator's restrictions say.
+            if (unavailableReason is null
+                && manager is not null
+                && !installed.Contains(tile.Entry)
+                && !restrictions.Allows(manager, tile.Entry.Source, tile.Entry.Id))
+                unavailableReason = CoreTools.Translate("This package is not among the packages allowed by your organization.");
             tile.HasUpdate = upgradable.Contains(tile.Entry);
             tile.UpdateState(
                 installed.Contains(tile.Entry),

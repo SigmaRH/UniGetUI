@@ -8,6 +8,7 @@ using UniGetUI.PackageEngine.Interfaces;
 using UniGetUI.PackageEngine.Operations;
 using UniGetUI.PackageEngine.PackageClasses;
 using UniGetUI.PackageEngine.PackageLoader;
+using UniGetUI.PackageEngine.Restrictions;
 using UniGetUI.PackageOperations;
 using UniGetUI.Tui.FakeData;
 
@@ -232,6 +233,17 @@ internal static class TuiPackageActions
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         await File.WriteAllTextAsync(path, BuildCsv(packages, includeNewVersion), new UTF8Encoding(true));
+    }
+
+    /// <summary>
+    /// Writes the packages as a package restrictions file an administrator can merge into the
+    /// deployed list. Returns how many were left out because no manager can install them again.
+    /// </summary>
+    public static int WriteAllowList(string path, IEnumerable<IPackage> packages)
+    {
+        var document = AllowListExport.Build(packages, out int skipped);
+        AllowListExport.WriteAtomic(path, AllowListExport.ToJson(document));
+        return skipped;
     }
 
     private static string Escape(string? value)

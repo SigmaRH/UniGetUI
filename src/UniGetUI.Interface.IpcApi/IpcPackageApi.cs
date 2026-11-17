@@ -145,6 +145,7 @@ public static class IpcPackageApi
         var pendingRestartKeys = PendingRebootStore.GetPendingKeys();
         return GetManagers(managerName)
             .SelectMany(manager => manager.FindPackages(safeQuery))
+            .Where(PackageRestrictionGate.IsVisible)
             .DistinctBy(GetPackageIdentity)
             .Select(package => ToIpcPackageInfo(package, pendingRestartKeys))
             .OrderBy(package => package.Name, StringComparer.OrdinalIgnoreCase)
@@ -749,19 +750,29 @@ public static class IpcPackageApi
 
     private static IPackage FindSearchResult(IpcPackageActionRequest request)
     {
+        string? refusal = null;
         foreach (var manager in GetManagers(request.ManagerName))
         {
-            var package = manager.FindPackages(request.PackageId).FirstOrDefault(candidate =>
-                MatchesIdentity(candidate, request)
-            );
-            if (package is not null)
+            foreach (var package in manager.FindPackages(request.PackageId))
             {
+                if (!MatchesIdentity(package, request))
+                {
+                    continue;
+                }
+
+                // Only what the administrator allows, or what is already installed, is offered.
+                if (PackageRestrictionGate.WhyInstallRefused(package, askManager: true) is { } reason)
+                {
+                    refusal ??= reason;
+                    continue;
+                }
+
                 return package;
             }
         }
 
         throw new InvalidOperationException(
-            $"No package matching id \"{request.PackageId}\" was found."
+            refusal ?? $"No package matching id \"{request.PackageId}\" was found."
         );
     }
 

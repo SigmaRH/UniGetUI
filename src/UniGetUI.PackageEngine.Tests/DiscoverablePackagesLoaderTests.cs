@@ -4,6 +4,7 @@ using UniGetUI.Core.SettingsEngine.SecureSettings;
 using UniGetUI.PackageEngine.Interfaces;
 using UniGetUI.PackageEngine.PackageClasses;
 using UniGetUI.PackageEngine.PackageLoader;
+using UniGetUI.PackageEngine.Restrictions;
 using UniGetUI.PackageEngine.Tests.Infrastructure.Builders;
 using UniGetUI.PackageEngine.Tests.Infrastructure.Fakes;
 
@@ -31,6 +32,7 @@ public sealed class DiscoverablePackagesLoaderTests : IDisposable
 
     public void Dispose()
     {
+        PackageRestrictions.TestOverride = null;
         Settings.ResetSettings();
         CoreData.TEST_DataDirectoryOverride = null;
         SecureSettings.TEST_SecureSettingsRootOverride = null;
@@ -144,6 +146,81 @@ public sealed class DiscoverablePackagesLoaderTests : IDisposable
         Assert.Empty(loader.Packages);
         Assert.True(loader.IsLoaded);
         Assert.False(loader.IsLoading);
+    }
+
+    private static void Restrict(params string[] rules) =>
+        PackageRestrictions.TestOverride = () => new RestrictionSet(
+            RestrictionState.Enforced,
+            RestrictionOrigin.Registry,
+            rules.Select(rule => RestrictionRule.ParseLine(rule)!));
+
+    [Fact]
+    public async Task RestrictionsAreAppliedBeforeTheResultCap()
+    {
+        var alpha = new PackageManagerBuilder()
+            .WithName("Alpha")
+            .WithDisplayName("Alpha")
+            .WithFindPackages((m, _) =>
+                Enumerable.Range(0, 150)
+                    .Select(i => new PackageBuilder().WithManager(m).WithId($"Pkg.{i:000}").Build())
+                    .ToArray())
+            .Build();
+
+        _ = new InstalledPackagesLoader([alpha]);
+        _ = new UpgradablePackagesLoader([alpha]);
+        var loader = new DiscoverablePackagesLoader([alpha]);
+
+        // The one allowed package is ranked beyond the 100 results kept for a manager.
+        Restrict("Alpha|*|Pkg.149");
+        await loader.ReloadPackages("pkg");
+
+        Assert.Equal("Pkg.149", Assert.Single(loader.Packages).Id);
+    }
+
+    [Fact]
+    public async Task InstalledPackagesStayVisibleUnderRestrictions()
+    {
+        var alpha = new PackageManagerBuilder()
+            .WithName("Alpha")
+            .WithDisplayName("Alpha")
+            .WithInstalledPackages(m => [new PackageBuilder().WithManager(m).WithId("Installed.Pkg").Build()])
+            .WithFindPackages((m, _) =>
+            [
+                new PackageBuilder().WithManager(m).WithId("Installed.Pkg").Build(),
+                new PackageBuilder().WithManager(m).WithId("Other.Pkg").Build(),
+            ])
+            .Build();
+
+        var installed = new InstalledPackagesLoader([alpha]);
+        _ = new UpgradablePackagesLoader([alpha]);
+        var loader = new DiscoverablePackagesLoader([alpha]);
+        await installed.ReloadPackages();
+
+        Restrict();
+        await loader.ReloadPackages("pkg");
+
+        Assert.Equal("Installed.Pkg", Assert.Single(loader.Packages).Id);
+        Assert.Null(PackageRestrictionGate.WhyInstallRefused(Assert.Single(loader.Packages)));
+        Assert.NotNull(PackageRestrictionGate.WhyInstallRefused(
+            new PackageBuilder().WithManager(alpha).WithId("Other.Pkg").Build()));
+    }
+
+    [Fact]
+    public void AnInstallIsAllowedWhenTheManagerReportsThePackageButTheListIsNotLoaded()
+    {
+        var alpha = new PackageManagerBuilder()
+            .WithName("Alpha")
+            .WithDisplayName("Alpha")
+            .WithInstalledPackages(m => [new PackageBuilder().WithManager(m).WithId("Installed.Pkg").Build()])
+            .Build();
+        var package = new PackageBuilder().WithManager(alpha).WithId("Installed.Pkg").Build();
+
+        // As in a headless session: the installed list was never loaded.
+        _ = new InstalledPackagesLoader([alpha]);
+        Restrict();
+
+        Assert.NotNull(PackageRestrictionGate.WhyInstallRefused(package));
+        Assert.Null(PackageRestrictionGate.WhyInstallRefused(package, askManager: true));
     }
 
     [Fact]

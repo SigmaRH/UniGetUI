@@ -119,12 +119,20 @@ internal static class TuiBundleService
         {
             var manager = TuiEngine.FindManager(raw.ManagerName);
             var (sourceName, sourceStatus) = BundleImportFilter.ClassifySource(manager, raw.Source);
+            var subject = new BundleReportSubject(raw.Id, raw.Name, manager?.DisplayName ?? raw.ManagerName, sourceName);
             raw.InstallationOptions = BundleImportFilter.Apply(
                 ref report,
-                new BundleReportSubject(raw.Id, raw.Name, manager?.DisplayName ?? raw.ManagerName, sourceName),
+                subject,
                 raw.InstallationOptions, allowCli, allowPrePost,
                 manager?.CommandLineIsShellInterpreted ?? false, sourceName, sourceStatus);
-            packages.Add(DeserializePackage(raw));
+
+            IPackage imported = DeserializePackage(raw);
+            if (imported is ImportedPackage && PackageRestrictionGate.WhyInstallRefused(imported) is not null)
+            {
+                BundleImportFilter.ReportRestricted(ref report, subject);
+                imported = new InvalidImportedPackage(raw.GetInvalidEquivalent(), NullSource.Instance);
+            }
+            packages.Add(imported);
         }
 
         foreach (var raw in bundle.incompatible_packages)

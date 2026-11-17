@@ -11,6 +11,7 @@
         <ProjectReference Include="..\UniGetUI.Core.Tools\UniGetUI.Core.Tools.csproj" />
         <ProjectReference Include="..\UniGetUI.PackageEngine.Enums\UniGetUI.PackageEngine.Structs.csproj" />
         <ProjectReference Include="..\UniGetUI.PackageEngine.Interfaces\UniGetUI.PackageEngine.Interfaces.csproj" />
+        <ProjectReference Include="..\UniGetUI.PackageEngine.Restrictions\UniGetUI.PackageEngine.Restrictions.csproj" />
     </ItemGroup>
 
     <ItemGroup>

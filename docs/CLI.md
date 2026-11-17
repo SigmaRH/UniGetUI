@@ -662,6 +662,7 @@ These parameters are accepted by the app executables in addition to the automati
 | `<bundle-file>` | Loads a valid bundle file into the Package Bundles page. | Supported extensions include `.ubundle`, `.json`, `.yaml`, and `.xml`. |
 | `pkg-helper install-daemon` / `remove-daemon` | Installs (or removes) the root service that lets standard users install catalog packages without an administrator password. | macOS, as root. `pkg-helper serve` is what the service runs. See [PKG_FEEDS.md](PKG_FEEDS.md). |
 | `pkg-index <folder>` | Writes the `index.json` that publishes a folder of packages as a web feed, then quits: `.exe` and `.msi` files on Windows, `.pkg`, `.dmg` and `.zip` files elsewhere. Entries another platform wrote are kept while their files are unchanged. | `.dmg` files are read on macOS only. Exits 3 when a file in the folder could not be read. See [PKG_FEEDS.md](PKG_FEEDS.md) and [WINDOWS_INSTALLER_FEEDS.md](WINDOWS_INSTALLER_FEEDS.md). |
+| `export-installed <file\|-> [--manager <name>]... [--format json\|rules] [--merge <file>] [--timeout <seconds>]` | Writes the packages installed on this machine as a package restrictions file, then quits. Needs no running UniGetUI. | Exits 3 when the list was written but a package manager failed or timed out. See [PACKAGE_RESTRICTIONS.md](PACKAGE_RESTRICTIONS.md). |
 
 ## Other environment variables
 

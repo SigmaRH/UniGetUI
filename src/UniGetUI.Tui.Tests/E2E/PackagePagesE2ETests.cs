@@ -451,6 +451,24 @@ internal sealed class PackagePagesE2ETests : TuiE2ETestBase
     }
 
     [Test]
+    public async Task ExportAllowList()
+    {
+        await ResetAsync(TuiPageIds.Installed);
+        await EnterPage();
+        await Type("m");
+        await ChooseAsync("Export as allow-list");
+        await WaitForDialogAsync("Export as allow-list");
+        string path = Path.Join(FakeDataSetUp.Sandbox, "PackageRestrictions.json");
+        await ReplaceTextAsync(path);
+        await Key(K.Enter);
+        await WaitUntilAsync(() => File.Exists(path), "the package restrictions file");
+        string json = File.ReadAllText(path);
+        NAssert.That(json, Does.Contain("\"enabled\": true"));
+        NAssert.That(json, Does.Contain("\"id\": \"Woodgrove.Vault\""));
+        NAssert.That(json, Does.Contain("\"version\": \"7.4.1\""));
+    }
+
+    [Test]
     public async Task SearchOptions_ExactMatch()
     {
         await ResetAsync(TuiPageIds.Installed);

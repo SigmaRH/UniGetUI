@@ -47,17 +47,22 @@ public class DiscoverSoftwarePage : AbstractPackagesPage
         DisableAutomaticPackageLoadOnStart = true,
         DisableFilterOnQueryChange = true,
         DisableReload = false,
-        NoPackages_BackgroundText = CoreTools.Translate("No results were found matching the input criteria"),
+        NoPackages_BackgroundText = NoResultsText(),
         NoPackages_SourcesText = CoreTools.Translate("No packages were found"),
         NoPackages_SubtitleText_Base = CoreTools.Translate("No packages were found"),
         MainSubtitle_StillLoading = CoreTools.Translate("Loading packages"),
-        NoMatches_BackgroundText = CoreTools.Translate("No results were found matching the input criteria"),
+        NoMatches_BackgroundText = NoResultsText(),
     }, vm => AddCatalogToolbar(vm, catalogEditor))
     {
         _catalogEditor = catalogEditor;
     }
 
     private readonly CatalogEditorViewModel? _catalogEditor;
+
+    // Says why a search for something that exists comes back empty on a managed machine.
+    private static string NoResultsText() => PackageRestrictionGate.IsActive
+        ? CoreTools.Translate("No results were found among the packages allowed by your organization")
+        : CoreTools.Translate("No results were found matching the input criteria");
 
     private static void AddCatalogToolbar(PackagesPageViewModel vm, CatalogEditorViewModel? document)
     {

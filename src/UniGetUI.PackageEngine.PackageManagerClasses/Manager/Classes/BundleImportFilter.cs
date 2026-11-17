@@ -163,6 +163,24 @@ public static class BundleImportFilter
         return options;
     }
 
+    /// <summary>
+    /// Records that a package of the bundle is outside what the administrator allows. The caller
+    /// decides that, and imports the package as one that cannot be installed.
+    /// </summary>
+    public static void ReportRestricted(ref BundleReport report, BundleReportSubject subject) =>
+        Add(
+            ref report,
+            subject,
+            "Package",
+            RestrictedLabel,
+            subject.Id,
+            $"{RestrictedLabel}: {subject.Id}",
+            BundleReportSeverity.High,
+            false
+        );
+
+    public const string RestrictedLabel = "Package not allowed by your organization";
+
     public static (string Name, BundleSourceStatus Status) ClassifySource(
         IPackageManager? manager,
         string declaredSource

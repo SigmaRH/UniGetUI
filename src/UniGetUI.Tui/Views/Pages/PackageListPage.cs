@@ -18,6 +18,7 @@ using UniGetUI.PackageEngine.Interfaces;
 using UniGetUI.PackageEngine.ManagerClasses.Manager;
 using UniGetUI.PackageEngine.PackageClasses;
 using UniGetUI.PackageEngine.PackageLoader;
+using UniGetUI.PackageEngine.Restrictions;
 using UniGetUI.Tui.Infrastructure;
 using UniGetUI.Tui.Theme;
 using UniGetUI.Tui.Views.Controls;
@@ -1053,7 +1054,9 @@ internal sealed class PackageListPage : UserControl, ITuiPage
             {
                 PackagePageKind.Discover => _submittedQuery is null
                     ? CoreTools.Translate("Search for packages to start") + "."
-                    : CoreTools.Translate("No results were found matching the input criteria"),
+                    : PackageRestrictionGate.IsActive
+                        ? CoreTools.Translate("No results were found among the packages allowed by your organization")
+                        : CoreTools.Translate("No results were found matching the input criteria"),
                 PackagePageKind.Updates => CoreTools.Translate("Hooray! No updates were found."),
                 PackagePageKind.Installed => CoreTools.Translate("No packages were found"),
                 _ => CoreTools.Translate("Add packages or open an existing package bundle"),
@@ -1194,6 +1197,8 @@ internal sealed class PackageListPage : UserControl, ITuiPage
             list.Add(new(CoreTools.Translate("Add selection to bundle"), "b", () => AddToBundleAsync(SelectedOrFocused()), () => hasFocus));
         if (_kind is PackagePageKind.Updates or PackagePageKind.Installed)
             list.Add(new(CoreTools.Translate("Export to CSV"), null, ExportCsvAsync, () => _rows.Count > 0));
+        if (_kind is PackagePageKind.Installed)
+            list.Add(new(CoreTools.Translate("Export as allow-list"), null, ExportAllowListAsync, () => _rows.Count > 0));
         list.Add(new(CoreTools.Translate("Copy package info"), "Ctrl+C", CopySelectedAsync, () => hasFocus));
         list.Add(TuiAction.Separator);
         list.Add(new(CoreTools.Translate("Select all") + " / " + CoreTools.Translate("Clear selection"), "Ctrl+A", () =>
@@ -1438,6 +1443,24 @@ internal sealed class PackageListPage : UserControl, ITuiPage
         catch (Exception ex)
         {
             TuiNotifications.Error(CoreTools.Translate("Export to CSV"), ex.Message);
+        }
+    }
+
+    private async Task ExportAllowListAsync()
+    {
+        var packages = CheckedPackages();
+        if (packages.Count == 0) packages = _rows.Select(r => r.Package).ToList();
+        string suggested = Path.Join(TuiPackageActions.DefaultDownloadDirectory(), PackageRestrictions.FileName);
+        string? path = await TuiPrompts.AskTextAsync(CoreTools.Translate("Export as allow-list"), CoreTools.Translate("Save to file:"), suggested);
+        if (string.IsNullOrWhiteSpace(path)) return;
+        try
+        {
+            await Task.Run(() => TuiPackageActions.WriteAllowList(path, packages));
+            TuiNotifications.Success(CoreTools.Translate("Export as allow-list"), path);
+        }
+        catch (Exception ex)
+        {
+            TuiNotifications.Error(CoreTools.Translate("Export as allow-list"), ex.Message);
         }
     }
 

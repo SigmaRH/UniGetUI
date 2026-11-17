@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                           revision="1.0"
+                           schemaVersion="1.0"
+                           xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>UniGetUI</displayName>
+  <description>Policies for UniGetUI</description>
+  <resources>
+    <stringTable>
+      <string id="UniGetUI">UniGetUI</string>
+      <string id="PackageRestrictions">Restrict the packages that can be found and installed</string>
+      <string id="PackageRestrictions_Explain">Limits UniGetUI to the packages you list.
+
+If you enable this setting, users only find and install the packages that a rule allows. Packages that are already installed stay visible and can still be updated, reinstalled and uninstalled. An empty list allows no new package.
+
+Each rule is one line:
+
+  manager|source|id    one package, for example  winget|winget|Mozilla.Firefox
+  manager|source       every package of a source, for example  scoop|main
+  manager              every package of a package manager, for example  pip
+
+Use * as the source to allow a package from any source (winget|*|7zip.7zip), and * inside an id as a wildcard (winget|winget|Microsoft.*). Names are not case-sensitive. "unigetui export-installed list.txt --format rules" writes the packages installed on a machine in this form.
+
+If you disable this setting, no restriction applies, even when a PackageRestrictions.json file is present on the machine.
+
+If you do not configure this setting, UniGetUI applies the PackageRestrictions.json file of its machine-wide folder, if there is one.
+
+This limits what UniGetUI offers. It does not prevent the use of the package managers themselves.</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="PackageRestrictions">
+        <listBox refId="AllowedPackages">Allowed packages (manager|source|id):</listBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

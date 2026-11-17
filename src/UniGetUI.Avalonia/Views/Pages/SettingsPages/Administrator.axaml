@@ -51,6 +51,17 @@
                 </Grid>
             </Border>
 
+            <!-- Package restrictions deployed by the organization (read-only) -->
+            <settings:TranslatedTextBlock Text="Package restrictions set by your organization"
+                                          FontSize="14"
+                                          FontWeight="SemiBold"
+                                          Margin="44,32,4,8"
+                                          automation:AutomationProperties.HeadingLevel="2"/>
+            <TextBlock Text="{Binding PackageRestrictionsStatus}"
+                       FontSize="14"
+                       TextWrapping="Wrap"
+                       Margin="44,0,4,0"/>
+
             <!-- Elevation settings (Windows-only) -->
             <StackPanel Orientation="Vertical" IsVisible="{Binding IsWindows}">
                 <settings:TranslatedTextBlock Text="Change how operations request administrator rights"

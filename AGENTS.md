@@ -297,6 +297,41 @@ version (as an explicit `Version`, which WinGet passes as `--version`).
   update is launched or after its options are saved, and every update is checked again by
   `RefusalBeforeStart` before any pre-operation runs.
 
+## Package restrictions
+
+`UniGetUI.PackageEngine.Restrictions` holds the allow-list an administrator deploys; the
+administrator workflow is in `docs/PACKAGE_RESTRICTIONS.md`. Its types avoid the word "Policy",
+which belongs to the Agent broker.
+
+- `PackageRestrictions.Current` is an immutable `RestrictionSet`, read again at most every 30
+  seconds. A configured group policy (`RestrictionRegistryReader`,
+  `HKLM\SOFTWARE\Policies\Devolutions\UniGetUI\PackageRestrictions`, templates in
+  `InstallerExtras/PolicyDefinitions`) decides alone, even when it turns restrictions off; else
+  `PackageRestrictions.json` in the machine-wide directory does.
+- The file is applied only when `RestrictionFileTrust` finds that administrators alone can change
+  it. An untrusted file is ignored (failing closed would let any user block installs on an
+  unmanaged machine); a trusted one that cannot be read allows nothing.
+- A rule is `manager|source|id`, `manager|source` or `manager` (`RestrictionRule`), matched
+  without case, with `*` as a wildcard in the id only.
+- `PackageRestrictionGate` (in the package loaders project, because it needs the installed list)
+  lets a package through when a rule allows it **or it is already installed**. That exemption is
+  what keeps updates, reinstalls and uninstalls working, so never filter the installed or the
+  upgradable loader.
+- Enforcement points: `DiscoverablePackagesLoader.LoadPackagesFromManager` (before the result
+  caps, or an allowed package ranked beyond them disappears), `IpcPackageApi.SearchPackages` and
+  `FindSearchResult`, `SoftwareCatalogViewModel.UpdateStates`, the three bundle import sites
+  (`BundleImportFilter.ReportRestricted`), and `PackageOperation.RefusalBeforeStart` for the
+  `Install` role, which is the one every entry point goes through. `PackageManager.FindPackages`
+  is deliberately not filtered: the Catalog Editor, details and feed expansion call it.
+- `PackageOperation` decides the exemption when it is created (`_restrictionExempt`): a reinstall
+  uninstalls first, so on a retry the package would no longer look installed.
+- `AllowListExport` writes installed packages as a restrictions file. It backs the Installed
+  page's and the TUI's **Export as allow-list** and the standalone `unigetui export-installed`
+  (`ExportInstalledCommand`), which initializes the managers itself and needs no running instance.
+- Tests swap `PackageRestrictions.TestOverride`, `TestFilePathOverride`,
+  `RestrictionRegistryReader.Source` and `RestrictionFileTrust.TestOverride`; none may write to
+  HKLM or to the machine-wide directory.
+
 ## Build & Test
 
 ```shell

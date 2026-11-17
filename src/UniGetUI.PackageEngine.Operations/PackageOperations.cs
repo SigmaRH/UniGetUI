@@ -93,6 +93,10 @@ namespace UniGetUI.PackageEngine.Operations
         > _reinstallChecks = new();
         private bool _reinstallsThisAttempt;
         private readonly bool _autoPinned;
+
+        // Decided when the operation is created: a reinstall uninstalls the package first, so by
+        // the time it is retried the package is no longer installed and would look like a new one.
+        private readonly bool _restrictionExempt;
         private OperationType CommandRole => _reinstallsThisAttempt ? OperationType.Install : Role;
 
         internal void AdoptReinstallStepFailure()
@@ -144,6 +148,9 @@ namespace UniGetUI.PackageEngine.Operations
             Role = role;
             if (role is OperationType.Install)
                 _uninstallPrerequisite = req as UninstallPackageOperation;
+            _restrictionExempt =
+                role is not OperationType.Install
+                || PackageRestrictionGate.WhyInstallRefused(package) is null;
             if (role is OperationType.Update)
             {
                 var unpinned = options.WithoutSavedVersion();
@@ -1744,6 +1751,9 @@ namespace UniGetUI.PackageEngine.Operations
                     "{0} asks for administrator rights on its own to finish this operation, and elevation is prohibited in UniGetUI's settings.",
                     Package.Manager.DisplayName
                 );
+
+            if (Role is OperationType.Install && !_restrictionExempt)
+                return PackageRestrictionGate.WhyInstallRefused(Package, askManager: true);
 
             if (Role is not OperationType.Update)
                 return null;

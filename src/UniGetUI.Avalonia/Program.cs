@@ -12,6 +12,7 @@ using UniGetUI.PackageEngine.Managers.WinInstallerManager;
 using UniGetUI.PackageEngine.Managers.MacPkgManager;
 #endif
 using UniGetUI.Interface;
+using UniGetUI.PackageEngine;
 using UniGetUI.Tui;
 
 namespace UniGetUI.Avalonia;
@@ -79,6 +80,14 @@ sealed class Program
             return;
         }
 #endif
+
+        if (ExportInstalledCommand.IsCommand(args))
+        {
+            WindowsConsoleHost.PrepareCliIO();
+            ProcessEnvironmentConfigurator.PrepareForCurrentPlatform();
+            Environment.ExitCode = ExportInstalledCommand.Run(args[1..], Console.Out, Console.Error);
+            return;
+        }
 
 #if WINDOWS
         // Stamp the AUMID onto this process before anything else so the shell attributes
